@@ -26,7 +26,7 @@ services:
     image: neo4j:5
     container_name: musicapp-neo4j
     environment:
-      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/password123}
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/database}
       # Enable APOC.
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_apoc_export_file_enabled: "true"

@@ -56,7 +56,11 @@ docker compose ps
 
 Default credentials:
 
-- **Neo4j**: `neo4j` / `password123` (override via `NEO4J_AUTH`)
+- **Neo4j**: `neo4j` / `database` (override via `NEO4J_AUTH`)
+
+  > `NEO4J_AUTH` only takes effect on the **first** start against an empty `neo4j-data`
+  > volume. If you change the password later you must recreate the volume
+  > (`docker compose down -v`) or the old password stays in effect.
 - **Grafana**: `admin` / `admin` (you'll be asked to change it on first login)
 
 ## 2. Configuration
@@ -68,7 +72,7 @@ Default credentials:
 | `MONGODB_URI`    | `mongodb://localhost:27017/musicapp?replicaSet=rs0`      |
 | `NEO4J_URI`      | `bolt://localhost:7687`                                  |
 | `NEO4J_USERNAME` | `neo4j`                                                  |
-| `NEO4J_PASSWORD` | `password123`                                            |
+| `NEO4J_PASSWORD` | `database`                                               |
 
 ## 3. Build & run the app
 
