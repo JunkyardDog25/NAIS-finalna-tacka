@@ -1,0 +1,61 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: musicapp-mongo
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    # Single-node replica set: the health check initiates rs0 the first time it runs
+    # (and is a no-op afterwards) so multi-document transactions work for the Saga.
+    healthcheck:
+      test: >
+        mongosh --quiet --port 27017 --eval "
+          try { rs.status().ok }
+          catch (e) {
+            rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok
+          }
+        "
+      interval: 5s
+      timeout: 30s
+      retries: 30
+      start_period: 5s
+
+  neo4j:
+    image: neo4j:5
+    container_name: musicapp-neo4j
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/password123}
+      # Enable APOC.
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+    ports:
+      - "7474:7474"   # HTTP / Browser
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: musicapp-grafana
+    environment:
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  mongo-data:
+  neo4j-data:
+  neo4j-logs:
+  grafana-data:
