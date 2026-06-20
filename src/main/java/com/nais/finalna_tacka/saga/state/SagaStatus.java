@@ -11,5 +11,10 @@ public enum SagaStatus {
     GRAPH_DONE,
     COMPLETED,
     COMPENSATING,
-    FAILED
+    FAILED;
+
+    /** A finished saga: no further replies should drive its flow. */
+    public boolean isTerminal() {
+        return this == COMPLETED || this == FAILED;
+    }
 }

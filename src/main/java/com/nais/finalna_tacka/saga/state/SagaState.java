@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Persisted state of a single saga instance. Stored in MongoDB so the orchestrator is
@@ -30,4 +31,23 @@ public class SagaState {
 
     private Instant createdAt;
     private Instant updatedAt;
+
+    /** Create a fresh saga in {@link SagaStatus#STARTED} with a generated id and timestamps. */
+    public static SagaState start(SagaType sagaType, Song payload) {
+        Instant now = Instant.now();
+        SagaState state = new SagaState();
+        state.sagaId = UUID.randomUUID().toString();
+        state.sagaType = sagaType;
+        state.status = SagaStatus.STARTED;
+        state.payload = payload;
+        state.createdAt = now;
+        state.updatedAt = now;
+        return state;
+    }
+
+    /** Move to a new status and bump {@code updatedAt}. */
+    public void updateStatus(SagaStatus newStatus) {
+        this.status = newStatus;
+        this.updatedAt = Instant.now();
+    }
 }

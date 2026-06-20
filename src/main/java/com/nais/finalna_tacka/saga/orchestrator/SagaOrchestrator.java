@@ -18,7 +18,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -79,7 +78,7 @@ public class SagaOrchestrator {
             return;
         }
         // Idempotency: a saga that already finished must not react to a duplicate reply.
-        if (isTerminal(state.getStatus())) {
+        if (state.getStatus().isTerminal()) {
             log.debug("Saga {} already {}; ignoring reply {}", state.getSagaId(), state.getStatus(), reply.operation());
             return;
         }
@@ -148,29 +147,16 @@ public class SagaOrchestrator {
     // --- Helpers ---
 
     private SagaState newSaga(SagaType type, Song payload) {
-        Instant now = Instant.now();
-        SagaState state = new SagaState();
-        state.setSagaId(UUID.randomUUID().toString());
-        state.setSagaType(type);
-        state.setStatus(SagaStatus.STARTED);
-        state.setPayload(payload);
-        state.setCreatedAt(now);
-        state.setUpdatedAt(now);
-        return repository.save(state);
+        return repository.save(SagaState.start(type, payload));
     }
 
     private void save(SagaState state, SagaStatus status) {
-        state.setStatus(status);
-        state.setUpdatedAt(Instant.now());
+        state.updateStatus(status);
         repository.save(state);
     }
 
     private void send(String routingKey, Object command) {
         // Default exchange is "saga.exchange" (set on the RabbitTemplate); routing key == queue name.
         rabbitTemplate.convertAndSend(routingKey, command);
-    }
-
-    private boolean isTerminal(SagaStatus status) {
-        return status == SagaStatus.COMPLETED || status == SagaStatus.FAILED;
     }
 }

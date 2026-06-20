@@ -53,7 +53,7 @@ public class SongGraphService {
                     "Forced graph failure (saga.graph.fail-create=true) to demo compensation");
         }
 
-        // The song carries the full Artist; fall back to its id if the name is missing.
+        // The song carries the full Artist (resolved by SongMapper before the saga started).
         Artist artist = song.getArtist();
 
         neo4jClient.query(MERGE_SONG)
