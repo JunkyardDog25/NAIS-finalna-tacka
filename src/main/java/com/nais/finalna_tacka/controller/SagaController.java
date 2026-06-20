@@ -6,6 +6,7 @@ import com.nais.finalna_tacka.repository.mongo.SagaStateRepository;
 import com.nais.finalna_tacka.saga.orchestrator.SagaOrchestrator;
 import com.nais.finalna_tacka.saga.state.SagaState;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,15 +24,11 @@ import java.util.Map;
  * {@code GET /api/sagas/{sagaId}} to watch the status advance.
  */
 @RestController
+@RequiredArgsConstructor
 public class SagaController {
 
     private final SagaOrchestrator orchestrator;
     private final SagaStateRepository sagaStateRepository;
-
-    public SagaController(SagaOrchestrator orchestrator, SagaStateRepository sagaStateRepository) {
-        this.orchestrator = orchestrator;
-        this.sagaStateRepository = sagaStateRepository;
-    }
 
     /** Start a PUBLISH_SONG saga. Returns the sagaId to track the flow. */
     @PostMapping("/api/songs")

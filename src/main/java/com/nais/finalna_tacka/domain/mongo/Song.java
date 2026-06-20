@@ -17,11 +17,18 @@ public class Song {
 
     @Id
     private String id;
+
     private String title;
+
     private String artistId;
+
     private String albumId;
+
     private String genre;
+
     private int durationSeconds;
+
     private long playCount;
+
     private Instant createdAt;
 }

@@ -5,6 +5,7 @@ import com.nais.finalna_tacka.saga.messages.GraphCreateSong;
 import com.nais.finalna_tacka.saga.messages.GraphDeleteSong;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
 import com.nais.finalna_tacka.service.SongGraphService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
  * creates and treat deleting a missing node as a no-op.</p>
  */
 @Component
+@RequiredArgsConstructor
 @RabbitListener(queues = RabbitConfig.GRAPH_COMMANDS_QUEUE)
 public class GraphSagaParticipant {
 
@@ -31,11 +33,6 @@ public class GraphSagaParticipant {
 
     private final RabbitTemplate rabbitTemplate;
     private final SongGraphService songGraphService;
-
-    public GraphSagaParticipant(RabbitTemplate rabbitTemplate, SongGraphService songGraphService) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.songGraphService = songGraphService;
-    }
 
     @RabbitHandler
     public void onCreate(GraphCreateSong cmd) {
@@ -51,12 +48,11 @@ public class GraphSagaParticipant {
     @RabbitHandler
     public void onDelete(GraphDeleteSong cmd) {
         try {
-            // TODO (Member B): delete the Neo4j node + all relationships.
-            // Idempotency: deleting an already-missing node should succeed (no-op).
-            log.info("Saga {} GraphDeleteSong received (not yet implemented)", cmd.sagaId());
-            reply(cmd.sagaId(), "GraphDeleteSong", true, null);
+            songGraphService.deleteSong(cmd.songId());
+            reply(cmd.sagaId(), "delete", true, null);
         } catch (Exception e) {
-            reply(cmd.sagaId(), "GraphDeleteSong", false, e.getMessage());
+            log.error("Saga {} GraphDeleteSong failed: {}", cmd.sagaId(), e.getMessage());
+            reply(cmd.sagaId(), "delete", false, e.getMessage());
         }
     }
 

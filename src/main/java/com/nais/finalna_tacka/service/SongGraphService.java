@@ -31,6 +31,12 @@ public class SongGraphService {
             MERGE (s)-[:IN_GENRE]->(g)
             """;
 
+    // DETACH DELETE removes the Song node and all its relationships (BY/IN_GENRE/...).
+    // Shared Artist/Genre nodes are left intact. No match -> no-op (idempotent).
+    private static final String DELETE_SONG = """
+            MATCH (s:Song {songId: $songId}) DETACH DELETE s
+            """;
+
     private final Neo4jClient neo4jClient;
     private final ArtistRepository artistRepository;
 
@@ -66,5 +72,16 @@ public class SongGraphService {
 
         log.info("Merged song {} graph: (:Song)-[:BY]->(:Artist {}), (:Song)-[:IN_GENRE]->(:Genre {})",
                 song.getId(), song.getArtistId(), song.getGenre());
+    }
+
+    /**
+     * Delete the song node and all its relationships. Idempotent: deleting a missing node
+     * matches nothing and is a no-op, so a redelivered command is safe.
+     */
+    public void deleteSong(String songId) {
+        neo4jClient.query(DELETE_SONG)
+                .bind(songId).to("songId")
+                .run();
+        log.info("Deleted song {} from graph (DETACH DELETE)", songId);
     }
 }

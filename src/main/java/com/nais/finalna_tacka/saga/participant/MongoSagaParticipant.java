@@ -5,6 +5,7 @@ import com.nais.finalna_tacka.saga.messages.MongoCreateSong;
 import com.nais.finalna_tacka.saga.messages.MongoDeleteSong;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
 import com.nais.finalna_tacka.service.SongMongoService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
  * should not duplicate, a redelivered delete should be a no-op if already gone.</p>
  */
 @Component
+@RequiredArgsConstructor
 @RabbitListener(queues = RabbitConfig.MONGO_COMMANDS_QUEUE)
 public class MongoSagaParticipant {
 
@@ -31,11 +33,6 @@ public class MongoSagaParticipant {
 
     private final RabbitTemplate rabbitTemplate;
     private final SongMongoService songMongoService;
-
-    public MongoSagaParticipant(RabbitTemplate rabbitTemplate, SongMongoService songMongoService) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.songMongoService = songMongoService;
-    }
 
     @RabbitHandler
     public void onCreate(MongoCreateSong cmd) {

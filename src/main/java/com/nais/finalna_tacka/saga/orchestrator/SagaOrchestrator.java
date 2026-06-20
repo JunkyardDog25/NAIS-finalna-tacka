@@ -11,6 +11,7 @@ import com.nais.finalna_tacka.saga.messages.SagaReply;
 import com.nais.finalna_tacka.saga.state.SagaState;
 import com.nais.finalna_tacka.saga.state.SagaStatus;
 import com.nais.finalna_tacka.saga.state.SagaType;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -35,17 +36,13 @@ import java.util.UUID;
  * handler stays idempotent under RabbitMQ's at-least-once delivery.</p>
  */
 @Component
+@RequiredArgsConstructor
 public class SagaOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(SagaOrchestrator.class);
 
     private final RabbitTemplate rabbitTemplate;
     private final SagaStateRepository repository;
-
-    public SagaOrchestrator(RabbitTemplate rabbitTemplate, SagaStateRepository repository) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.repository = repository;
-    }
 
     // --- Entry points (called by the REST controller) ---
 

@@ -1,5 +1,6 @@
 package com.nais.finalna_tacka.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.neo4j.driver.Driver;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
@@ -18,15 +19,11 @@ import java.util.Map;
  * delegate to the {@code service} layer and never talk to repositories directly.</p>
  */
 @RestController
+@RequiredArgsConstructor
 public class HealthController {
 
     private final MongoTemplate mongoTemplate;
     private final Driver neo4jDriver;
-
-    public HealthController(MongoTemplate mongoTemplate, Driver neo4jDriver) {
-        this.mongoTemplate = mongoTemplate;
-        this.neo4jDriver = neo4jDriver;
-    }
 
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {

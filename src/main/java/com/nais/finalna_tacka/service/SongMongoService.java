@@ -3,6 +3,7 @@ package com.nais.finalna_tacka.service;
 import com.nais.finalna_tacka.domain.mongo.Playlist;
 import com.nais.finalna_tacka.domain.mongo.Song;
 import com.nais.finalna_tacka.repository.mongo.SongRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -19,17 +20,13 @@ import org.springframework.stereotype.Service;
  * </ul>
  */
 @Service
+@RequiredArgsConstructor
 public class SongMongoService {
 
     private static final Logger log = LoggerFactory.getLogger(SongMongoService.class);
 
     private final SongRepository songRepository;
     private final MongoTemplate mongoTemplate;
-
-    public SongMongoService(SongRepository songRepository, MongoTemplate mongoTemplate) {
-        this.songRepository = songRepository;
-        this.mongoTemplate = mongoTemplate;
-    }
 
     /**
      * Insert the song document. Idempotent: if a document with the same id already exists
