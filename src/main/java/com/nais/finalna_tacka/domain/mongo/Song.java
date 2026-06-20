@@ -20,7 +20,7 @@ public class Song {
 
     private String title;
 
-    private String artistId;
+    private Artist artist;
 
     private String albumId;
 

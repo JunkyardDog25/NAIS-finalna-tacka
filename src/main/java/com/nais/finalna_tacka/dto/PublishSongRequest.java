@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Positive;
  */
 public record PublishSongRequest(
         @NotBlank String title,
-        @NotBlank String artistId,
+        ArtistDto artist,
         String albumId,
         @NotBlank String genre,
         @Positive int durationSeconds) {

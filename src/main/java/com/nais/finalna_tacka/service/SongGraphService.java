@@ -2,7 +2,6 @@ package com.nais.finalna_tacka.service;
 
 import com.nais.finalna_tacka.domain.mongo.Artist;
 import com.nais.finalna_tacka.domain.mongo.Song;
-import com.nais.finalna_tacka.repository.mongo.ArtistRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,16 +37,13 @@ public class SongGraphService {
             """;
 
     private final Neo4jClient neo4jClient;
-    private final ArtistRepository artistRepository;
 
     /** Demo toggle: when true the create step throws, exercising the saga compensation path. */
     private final boolean failCreate;
 
     public SongGraphService(Neo4jClient neo4jClient,
-                            ArtistRepository artistRepository,
                             @Value("${saga.graph.fail-create:false}") boolean failCreate) {
         this.neo4jClient = neo4jClient;
-        this.artistRepository = artistRepository;
         this.failCreate = failCreate;
     }
 
@@ -57,21 +53,19 @@ public class SongGraphService {
                     "Forced graph failure (saga.graph.fail-create=true) to demo compensation");
         }
 
-        // The Song document only carries artistId; resolve the display name from Mongo.
-        String artistName = artistRepository.findById(song.getArtistId())
-                .map(Artist::getName)
-                .orElse(song.getArtistId());
+        // The song carries the full Artist; fall back to its id if the name is missing.
+        Artist artist = song.getArtist();
 
         neo4jClient.query(MERGE_SONG)
                 .bind(song.getId()).to("songId")
                 .bind(song.getTitle()).to("title")
-                .bind(song.getArtistId()).to("artistId")
-                .bind(artistName).to("artistName")
+                .bind(artist.getId()).to("artistId")
+                .bind(artist.getName()).to("artistName")
                 .bind(song.getGenre()).to("genre")
                 .run();
 
         log.info("Merged song {} graph: (:Song)-[:BY]->(:Artist {}), (:Song)-[:IN_GENRE]->(:Genre {})",
-                song.getId(), song.getArtistId(), song.getGenre());
+                song.getId(), artist.getId(), song.getGenre());
     }
 
     /**
