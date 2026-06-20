@@ -4,6 +4,7 @@ import com.nais.finalna_tacka.config.RabbitConfig;
 import com.nais.finalna_tacka.saga.messages.MongoCreateSong;
 import com.nais.finalna_tacka.saga.messages.MongoDeleteSong;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
+import com.nais.finalna_tacka.service.SongMongoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -29,32 +30,32 @@ public class MongoSagaParticipant {
     private static final String PARTICIPANT = "mongo";
 
     private final RabbitTemplate rabbitTemplate;
+    private final SongMongoService songMongoService;
 
-    public MongoSagaParticipant(RabbitTemplate rabbitTemplate) {
+    public MongoSagaParticipant(RabbitTemplate rabbitTemplate, SongMongoService songMongoService) {
         this.rabbitTemplate = rabbitTemplate;
+        this.songMongoService = songMongoService;
     }
 
     @RabbitHandler
     public void onCreate(MongoCreateSong cmd) {
         try {
-            // TODO (Member A): perform the Mongo insert here for MongoCreateSong.
-            // Idempotency: upsert by id so a redelivered command does not create a duplicate.
-            log.info("Saga {} MongoCreateSong received (not yet implemented)", cmd.sagaId());
-            reply(cmd.sagaId(), "MongoCreateSong", true, null);
+            songMongoService.createSong(cmd.payload());
+            reply(cmd.sagaId(), "create", true, null);
         } catch (Exception e) {
-            reply(cmd.sagaId(), "MongoCreateSong", false, e.getMessage());
+            log.error("Saga {} MongoCreateSong failed: {}", cmd.sagaId(), e.getMessage());
+            reply(cmd.sagaId(), "create", false, e.getMessage());
         }
     }
 
     @RabbitHandler
     public void onDelete(MongoDeleteSong cmd) {
         try {
-            // TODO (Member B): perform the Mongo delete + remove-from-playlists here for MongoDeleteSong.
-            // Idempotency: deleting an already-missing song should succeed (no-op).
-            log.info("Saga {} MongoDeleteSong received (not yet implemented)", cmd.sagaId());
-            reply(cmd.sagaId(), "MongoDeleteSong", true, null);
+            songMongoService.deleteSong(cmd.songId());
+            reply(cmd.sagaId(), "delete", true, null);
         } catch (Exception e) {
-            reply(cmd.sagaId(), "MongoDeleteSong", false, e.getMessage());
+            log.error("Saga {} MongoDeleteSong failed: {}", cmd.sagaId(), e.getMessage());
+            reply(cmd.sagaId(), "delete", false, e.getMessage());
         }
     }
 

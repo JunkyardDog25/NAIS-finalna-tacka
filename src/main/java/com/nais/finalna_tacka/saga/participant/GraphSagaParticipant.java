@@ -4,6 +4,7 @@ import com.nais.finalna_tacka.config.RabbitConfig;
 import com.nais.finalna_tacka.saga.messages.GraphCreateSong;
 import com.nais.finalna_tacka.saga.messages.GraphDeleteSong;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
+import com.nais.finalna_tacka.service.SongGraphService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -29,20 +30,21 @@ public class GraphSagaParticipant {
     private static final String PARTICIPANT = "graph";
 
     private final RabbitTemplate rabbitTemplate;
+    private final SongGraphService songGraphService;
 
-    public GraphSagaParticipant(RabbitTemplate rabbitTemplate) {
+    public GraphSagaParticipant(RabbitTemplate rabbitTemplate, SongGraphService songGraphService) {
         this.rabbitTemplate = rabbitTemplate;
+        this.songGraphService = songGraphService;
     }
 
     @RabbitHandler
     public void onCreate(GraphCreateSong cmd) {
         try {
-            // TODO (Member A): create the Neo4j node + BY/IN_GENRE relationships.
-            // Idempotency: MERGE the node by id so a redelivered command does not duplicate.
-            log.info("Saga {} GraphCreateSong received (not yet implemented)", cmd.sagaId());
-            reply(cmd.sagaId(), "GraphCreateSong", true, null);
+            songGraphService.createSong(cmd.payload());
+            reply(cmd.sagaId(), "create", true, null);
         } catch (Exception e) {
-            reply(cmd.sagaId(), "GraphCreateSong", false, e.getMessage());
+            log.error("Saga {} GraphCreateSong failed: {}", cmd.sagaId(), e.getMessage());
+            reply(cmd.sagaId(), "create", false, e.getMessage());
         }
     }
 

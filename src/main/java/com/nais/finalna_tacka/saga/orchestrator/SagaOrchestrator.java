@@ -51,8 +51,12 @@ public class SagaOrchestrator {
 
     /** Begin a PUBLISH_SONG saga: write to Mongo first, then mirror into Neo4j. */
     public String startPublishSong(Song song) {
+        // Shared id: assign once here (before publishing) so Mongo and Neo4j use the same id.
+        if (song.getId() == null) {
+            song.setId(UUID.randomUUID().toString());
+        }
         SagaState state = newSaga(SagaType.PUBLISH_SONG, song);
-        log.info("Saga {} PUBLISH_SONG started", state.getSagaId());
+        log.info("Saga {} PUBLISH_SONG started for songId={}", state.getSagaId(), song.getId());
         send(RabbitConfig.MONGO_COMMANDS_QUEUE, new MongoCreateSong(state.getSagaId(), song));
         return state.getSagaId();
     }
@@ -103,7 +107,7 @@ public class SagaOrchestrator {
                     save(state, SagaStatus.FAILED);
                 }
             }
-            case MONGO_DONE -> { // reply is for the Graph create step
+            case MONGO_DONE -> { // the reply is for the Graph create step
                 if (reply.success()) {
                     save(state, SagaStatus.COMPLETED);
                 } else {

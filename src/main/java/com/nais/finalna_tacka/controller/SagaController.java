@@ -1,9 +1,11 @@
 package com.nais.finalna_tacka.controller;
 
 import com.nais.finalna_tacka.domain.mongo.Song;
+import com.nais.finalna_tacka.dto.PublishSongRequest;
 import com.nais.finalna_tacka.repository.mongo.SagaStateRepository;
 import com.nais.finalna_tacka.saga.orchestrator.SagaOrchestrator;
 import com.nais.finalna_tacka.saga.state.SagaState;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -32,7 +35,17 @@ public class SagaController {
 
     /** Start a PUBLISH_SONG saga. Returns the sagaId to track the flow. */
     @PostMapping("/api/songs")
-    public ResponseEntity<Map<String, String>> publishSong(@RequestBody Song song) {
+    public ResponseEntity<Map<String, String>> publishSong(@Valid @RequestBody PublishSongRequest request) {
+        // Map DTO -> domain. id stays null (orchestrator assigns it); fresh playCount/createdAt.
+        Song song = new Song();
+        song.setTitle(request.title());
+        song.setArtistId(request.artistId());
+        song.setAlbumId(request.albumId());
+        song.setGenre(request.genre());
+        song.setDurationSeconds(request.durationSeconds());
+        song.setPlayCount(0);
+        song.setCreatedAt(Instant.now());
+
         String sagaId = orchestrator.startPublishSong(song);
         return ResponseEntity.accepted().body(Map.of("sagaId", sagaId));
     }
