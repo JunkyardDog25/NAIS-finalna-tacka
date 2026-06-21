@@ -9,12 +9,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Persisted state of a single saga instance. Stored in MongoDB so the orchestrator is
- * stateful (survives restarts) and idempotent (each reply is resolved against the stored
- * status).
+ * Perzistirano stanje jedne saga instance. Čuva se u MongoDB-u tako da je orkestrator
+ * stateful (preživljava restartove) i idempotentan (svaki odgovor se razrešava u odnosu na
+ * sačuvani status).
  *
- * <p>The {@code payload} snapshot keeps the full {@link Song} so that compensation on a
- * DELETE_SONG flow can re-create the document/node from the saved data.</p>
+ * <p>{@code payload} snapshot drži kompletan {@link Song} tako da kompenzacija u DELETE_SONG
+ * toku može ponovo da kreira dokument/čvor iz sačuvanih podataka.</p>
  */
 @Data
 @Document(collection = "saga_state")
@@ -29,6 +29,9 @@ public class SagaState {
     /** Snapshot of the song; needed to compensate (re-create) on a delete flow. */
     private Song payload;
 
+    /** Payload za RECORD_LISTEN sage (userId + songId). */
+    private ListenPayload listenPayload;
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -40,6 +43,19 @@ public class SagaState {
         state.sagaType = sagaType;
         state.status = SagaStatus.STARTED;
         state.payload = payload;
+        state.createdAt = now;
+        state.updatedAt = now;
+        return state;
+    }
+
+    /** Create a fresh RECORD_LISTEN saga in {@link SagaStatus#STARTED}. */
+    public static SagaState startListen(ListenPayload listenPayload) {
+        Instant now = Instant.now();
+        SagaState state = new SagaState();
+        state.sagaId = UUID.randomUUID().toString();
+        state.sagaType = SagaType.RECORD_LISTEN;
+        state.status = SagaStatus.STARTED;
+        state.listenPayload = listenPayload;
         state.createdAt = now;
         state.updatedAt = now;
         return state;
