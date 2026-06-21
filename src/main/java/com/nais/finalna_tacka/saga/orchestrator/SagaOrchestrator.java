@@ -5,9 +5,13 @@ import com.nais.finalna_tacka.domain.mongo.Song;
 import com.nais.finalna_tacka.repository.mongo.SagaStateRepository;
 import com.nais.finalna_tacka.saga.messages.GraphCreateSong;
 import com.nais.finalna_tacka.saga.messages.GraphDeleteSong;
+import com.nais.finalna_tacka.saga.messages.GraphRecordListen;
+import com.nais.finalna_tacka.saga.messages.MongoCompensateListen;
 import com.nais.finalna_tacka.saga.messages.MongoCreateSong;
 import com.nais.finalna_tacka.saga.messages.MongoDeleteSong;
+import com.nais.finalna_tacka.saga.messages.MongoRecordListen;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
+import com.nais.finalna_tacka.saga.state.ListenPayload;
 import com.nais.finalna_tacka.saga.state.SagaState;
 import com.nais.finalna_tacka.saga.state.SagaStatus;
 import com.nais.finalna_tacka.saga.state.SagaType;
@@ -21,18 +25,18 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Saga ORCHESTRATOR. Owns the flow: it starts a saga, sends the first command, and reacts
- * to each {@link SagaReply} by sending the next command or a compensation, persisting the
- * status after every transition.
+ * Saga ORKESTRATOR. Vlasnik je toka: pokreće sagu, šalje prvu komandu i reaguje na svaki
+ * {@link SagaReply} slanjem sledeće komande ili kompenzacije, perzistirajući status posle
+ * svake tranzicije.
  *
- * <p>Sequence (happy path PUBLISH_SONG):</p>
+ * <p>Sekvenca (happy path PUBLISH_SONG):</p>
  * <pre>
  *   start -> [STARTED] --MongoCreateSong--> mongo --reply ok--> [MONGO_DONE]
  *         --GraphCreateSong--> graph --reply ok--> [COMPLETED]
  * </pre>
- * <p>If the graph step fails the orchestrator compensates the Mongo step and ends FAILED.
- * Replies for a saga already in a terminal state (COMPLETED/FAILED) are ignored so the
- * handler stays idempotent under RabbitMQ's at-least-once delivery.</p>
+ * <p>Ako graf korak padne, orkestrator kompenzuje Mongo korak i završava sa FAILED.
+ * Odgovori za sagu koja je već u terminalnom stanju (COMPLETED/FAILED) se ignorišu, tako da
+ * handler ostaje idempotentan pri RabbitMQ at-least-once isporuci.</p>
  */
 @Component
 @RequiredArgsConstructor
@@ -68,6 +72,16 @@ public class SagaOrchestrator {
         return state.getSagaId();
     }
 
+    /** Begin a RECORD_LISTEN saga: increment playCount in Mongo, then upsert LISTENED in Neo4j. */
+    public String startRecordListen(String userId, String songId) {
+        SagaState state = newSagaListen(new ListenPayload(userId, songId));
+        log.info("Saga {} RECORD_LISTEN started for userId={} songId={}",
+                state.getSagaId(), userId, songId);
+        send(RabbitConfig.MONGO_COMMANDS_QUEUE,
+                new MongoRecordListen(state.getSagaId(), userId, songId));
+        return state.getSagaId();
+    }
+
     // --- Reply handling (drives the flow) ---
 
     @RabbitListener(queues = RabbitConfig.SAGA_REPLIES_QUEUE)
@@ -89,6 +103,7 @@ public class SagaOrchestrator {
         switch (state.getSagaType()) {
             case PUBLISH_SONG -> handlePublish(state, reply);
             case DELETE_SONG -> handleDelete(state, reply);
+            case RECORD_LISTEN -> handleRecordListen(state, reply);
         }
     }
 
@@ -144,10 +159,43 @@ public class SagaOrchestrator {
         }
     }
 
+    private void handleRecordListen(SagaState state, SagaReply reply) {
+        ListenPayload listen = state.getListenPayload();
+        switch (state.getStatus()) {
+            case STARTED -> { // reply is for the Mongo record step
+                if (reply.success()) {
+                    save(state, SagaStatus.MONGO_DONE);
+                    send(RabbitConfig.GRAPH_COMMANDS_QUEUE,
+                            new GraphRecordListen(state.getSagaId(), listen.userId(), listen.songId()));
+                } else {
+                    save(state, SagaStatus.FAILED);
+                }
+            }
+            case MONGO_DONE -> { // reply is for the Graph record step (terminal step)
+                if (reply.success()) {
+                    save(state, SagaStatus.COMPLETED);
+                } else {
+                    // Graph is terminal; compensate only Mongo (playCount--). Graph compensation
+                    // (count=1 -> delete rel) is not needed here — see ListenGraphService javadoc.
+                    save(state, SagaStatus.COMPENSATING);
+                    send(RabbitConfig.MONGO_COMMANDS_QUEUE,
+                            new MongoCompensateListen(state.getSagaId(), listen.userId(), listen.songId()));
+                    save(state, SagaStatus.FAILED);
+                }
+            }
+            default -> log.warn("Saga {} unexpected status {} for RECORD_LISTEN reply",
+                    state.getSagaId(), state.getStatus());
+        }
+    }
+
     // --- Helpers ---
 
     private SagaState newSaga(SagaType type, Song payload) {
         return repository.save(SagaState.start(type, payload));
+    }
+
+    private SagaState newSagaListen(ListenPayload listenPayload) {
+        return repository.save(SagaState.startListen(listenPayload));
     }
 
     private void save(SagaState state, SagaStatus status) {
