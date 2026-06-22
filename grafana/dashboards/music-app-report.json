@@ -105,11 +105,127 @@
       ],
       "title": "Pesme po trajanju",
       "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "description": "Složena sekcija (Neo4j): collaborative filtering preko LISTENED grafa.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "poklapanje" },
+            "properties": [{ "id": "custom.width", "value": 120 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "songId", "text": "songId", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "poklapanje", "text": "poklapanje", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/recommendations/${userId}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "CF preporuke (složena sekcija)",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "description": "Grafikon složene sekcije: broj korisničkih poklapanja po predloženoj pesmi.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 20 },
+      "id": 4,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xField": "title",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "poklapanje", "text": "poklapanje", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/recommendations/${userId}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "CF preporuke — bar chart",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": { "include": { "names": ["title", "poklapanje"] } }
+        }
+      ],
+      "type": "barchart"
     }
   ],
   "refresh": "",
   "schemaVersion": 38,
-  "tags": ["nais", "report", "proste-sekcije"],
+  "tags": ["nais", "report", "proste-sekcije", "slozena-sekcija", "neo4j-cf"],
   "templating": {
     "list": [
       {
@@ -150,14 +266,31 @@
         "query": "240",
         "skipUrlSync": false,
         "type": "textbox"
+      },
+      {
+        "current": { "selected": true, "text": "u1", "value": "u1" },
+        "description": "Korisnik za collaborative filtering (složena Neo4j sekcija).",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Korisnik (CF)",
+        "multi": false,
+        "name": "userId",
+        "options": [
+          { "selected": true, "text": "u1", "value": "u1" },
+          { "selected": false, "text": "u2", "value": "u2" },
+          { "selected": false, "text": "u3", "value": "u3" }
+        ],
+        "query": "u1,u2,u3",
+        "skipUrlSync": false,
+        "type": "custom"
       }
     ]
   },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "timezone": "",
-  "title": "Music App Report (proste sekcije)",
+  "title": "Music App Report",
   "uid": "music-app-report",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

@@ -1,7 +1,16 @@
-# Grafana — Music App Report (CF sekcija)
+# Grafana — Music App Report
 
-Koraci za vizualizaciju **collaborative filtering** izveštaja preko Grafana **Infinity**
-datasource-a. Aplikacija mora biti pokrenuta na hostu (`:8080`).
+Dashboard **Music App Report** se automatski učitava iz
+[`grafana/dashboards/music-app-report.json`](../grafana/dashboards/music-app-report.json)
+(provisioning — bez ručnog klikanja).
+
+Sadrži:
+
+| Sekcija | Paneli | Baza |
+|---------|--------|------|
+| Prosta 1 | Pesme po žanru (tabela) | Mongo |
+| Prosta 2 | Pesme po trajanju (tabela) | Mongo |
+| **Složena** | CF preporuke (tabela) + CF bar chart | **Neo4j** |
 
 **Podaci:** pokreni app sa `dev` profilom (automatski seed) ili prati
 [`report-cf-demo.md`](report-cf-demo.md).
@@ -17,36 +26,45 @@ datasource-a. Aplikacija mora biti pokrenuta na hostu (`:8080`).
 ```powershell
 cd D:\Work\NAIS-finalna-tacka
 docker compose up -d grafana
-# Spring Boot app na :8080 (./mvnw spring-boot:run)
+# Spring Boot app na :8080
 ```
 
 | Servis | URL |
 |--------|-----|
 | Grafana | http://localhost:3000 |
+| Dashboard | http://localhost:3000/d/music-app-report |
 | Spring API | http://localhost:8080 |
 
-**Login:** `admin` / `admin` (promeni lozinku pri prvom ulasku ako Grafana traži).
+**Login:** `admin` / `admin`
 
-Infinity plugin je već u [`docker-compose.yml`](../docker-compose.yml)
-(`yesoreyeram-infinity-datasource`).
+Infinity plugin + datasource + dashboard se učitavaju iz [`grafana/provisioning/`](../grafana/provisioning/).
 
 ---
 
-## 2. Infinity datasource
+## 2. Dashboard varijable
 
-1. **Connections → Data sources → Add new data source**
-2. Izaberi **Infinity**
-3. Podesi:
-   - **Name:** `SpringReports`
-   - **URL** (base): `http://host.docker.internal:8080`
+| Varijabla | Tip | Default | Paneli |
+|-----------|-----|---------|--------|
+| `genre` | custom | prazno = svi žanrovi | Pesme po žanru |
+| `minDur` / `maxDur` | textbox | 120 / 240 | Pesme po trajanju |
+| `userId` | custom | `u1` | CF preporuke (složena sekcija) |
 
-   > Na Windows Docker Desktop-u `host.docker.internal` pokazuje na host mašinu gde radi
-   > Spring Boot. **Ne koristi** `localhost:8080` iz Grafana kontejnera — to je localhost
-   > samog kontejnera, ne tvoje aplikacije.
+---
 
-4. **Save & test**
+## 3. Složena sekcija (Neo4j CF)
 
-Ako test ne uspe, proveri da app radi:
+Dva panela na dnu dashboarda:
+
+| Panel | Tip | Endpoint |
+|-------|-----|----------|
+| CF preporuke (složena sekcija) | Tabela | `GET /api/reports/recommendations/${userId}` |
+| CF preporuke — bar chart | Bar chart | isti endpoint |
+
+Kolone: `songId`, `title`, `poklapanje`.
+
+Posle `dev` seed-a, za `userId=u1` očekuj **Song B** sa `poklapanje=1`.
+
+Provera API-ja:
 
 ```powershell
 Invoke-RestMethod -Uri http://localhost:8080/api/reports/recommendations/u1
@@ -54,81 +72,20 @@ Invoke-RestMethod -Uri http://localhost:8080/api/reports/recommendations/u1
 
 ---
 
-## 3. Novi dashboard
-
-**Dashboards → New → New dashboard**
-
-Ime: `Music App Report`
-
----
-
-## 4. Panel 1 — Tabela preporuka (složena sekcija)
-
-1. **Add visualization**
-2. **Data source:** `SpringReports`
-3. **Query tip (Infinity):**
-   - **Type:** JSON
-   - **Parser:** JSON
-   - **Source:** URL
-   - **URL:** `/api/reports/recommendations/u1`
-   - **Method:** GET
-
-4. U **JSON / Root** ili **Columns** sekciji (zavisi od verzije Infinity plugina):
-   - Root: `$` (ceo niz)
-   - Kolone: `title`, `poklapanje`, `songId`
-
-5. **Visualization:** Table
-
-6. **Panel title:** `CF preporuke za u1`
-
-7. **Save**
-
-Očekivani podaci posle seed-a: jedan red — **Song B**, `poklapanje = 1`.
-
----
-
-## 5. Panel 2 — Bar chart (obavezan grafikon)
-
-1. **Add visualization** (ili Duplicate panel 1 pa promeni vizualizaciju)
-2. **Isti datasource i URL:** `/api/reports/recommendations/u1`
-3. **Visualization:** **Bar chart**
-4. Podesi:
-   - **X-axis / Labels:** polje `title`
-   - **Y-axis / Value:** polje `poklapanje`
-5. **Panel title:** `Collaborative filtering preporuke za u1`
-6. **Save dashboard**
-
----
-
-## 6. Provera
+## 4. Provera
 
 | Korak | Očekivano |
 |-------|-----------|
-| Seed iz `report-cf-demo.md` | `u1` → preporuka Song B |
-| Panel tabela | 1 red: Song B, poklapanje 1 |
-| Bar chart | jedan stubac za Song B |
+| `docker compose up -d grafana` + app na :8080 | Dashboard u folderu **Reports** |
+| Dev seed | `cf-song-a` u Mongo, LISTENED u Neo4j |
+| Panel „CF preporuke" za u1 | Song B, poklapanje 1 |
+| Bar chart | stubac za Song B |
 
-Za korisnika bez preklapanja (npr. pre seed-a):
+Ako Grafana ne vidi promene u JSON-u, restartuj kontejner:
 
 ```powershell
-Invoke-RestMethod -Uri http://localhost:8080/api/reports/recommendations/unknown-user
+docker compose restart grafana
 ```
-
-Vraća `[]` — Grafana prikazuje prazan panel (to je OK).
-
----
-
-## 7. Kolegini Mongo paneli (referenca)
-
-U isti dashboard `Music App Report` kolega može dodati proste sekcije sa istim
-`SpringReports` datasource-om, npr.:
-
-| Panel | Endpoint (primer) |
-|-------|-------------------|
-| Pesme po žanru | `GET /api/reports/songs/by-genre?genre=rock` |
-| Top pesme | `GET /api/reports/songs/top?limit=10` |
-
-Ti endpoint-i **nisu deo ovog CF zadatka** — dodaju se kada kolega implementira Mongo izveštaje.
 
 ---
 
@@ -136,69 +93,35 @@ Ti endpoint-i **nisu deo ovog CF zadatka** — dodaju se kada kolega implementir
 
 | Problem | Rešavanje |
 |---------|-----------|
-| Grafana „No data" | Proveri seed; URL mora biti pun put od base URL-a |
-| Connection refused | App na hostu? Koristi `host.docker.internal`, ne `localhost` |
-| Prazan `title` u tabeli | Publish pesme **pre** listen — vidi `report-cf-demo.md` |
-| Infinity plugin nedostaje | `docker compose up -d grafana` ponovo; proveri compose env za plugin |
+| Grafana „No data" | App na hostu? URL koristi `host.docker.internal:8080` |
+| Prazan CF panel | Pokreni `dev` profil; proveri seed u logu |
+| Prazan `title` | Publish pre listen — vidi `report-cf-demo.md` |
+| Stari dashboard u UI | `docker compose restart grafana` ili obriši stari u UI pa reload |
 
 ---
 
 ## Za odbranu
 
-- **Složena sekcija** = Neo4j CF upit u `RecommendationService`, REST u `ReportController`
-- **Grafikon** = Grafana bar chart nad istim JSON endpoint-om
-- Logika ostaje u Spring-u; Grafana je samo prezentacioni sloj
+- **Proste sekcije** = Mongo tabele (žanr, trajanje)
+- **Složena sekcija** = Neo4j CF u `RecommendationService`, REST u `ReportController`
+- **Grafikon** = bar chart panel nad istim JSON endpoint-om
+- Sve u jednom provisioned dashboardu — Grafana je prezentacioni sloj
 
 ---
 
-## 8. Proste sekcije — auto-provisioning (bez ručnog klikanja)
+## Detalji provisioning-a
 
-Dve proste sekcije (Mongo-only tabele pesama) se **automatski** učitavaju kroz Grafana
-**file provisioning**. Ništa se ne klika ručno — samo:
+- **Datasource** `SpringReports` (uid `springreports`) —
+  [`grafana/provisioning/datasources/infinity.yaml`](../grafana/provisioning/datasources/infinity.yaml)
+- **Dashboard provider** —
+  [`grafana/provisioning/dashboards/dashboards.yaml`](../grafana/provisioning/dashboards/dashboards.yaml)
+- Bind mount u [`docker-compose.yml`](../docker-compose.yml):
+  `./grafana/provisioning → /etc/grafana/provisioning`,
+  `./grafana/dashboards → /var/lib/grafana/dashboards`
 
-```powershell
-docker compose up -d grafana
-# Spring Boot app na :8080 (./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev")
-```
+### Prosti paneli — endpoint-i
 
-Posle starta Grafana sama kreira:
-
-- **Datasource** `SpringReports` (uid `springreports`, Infinity, default) —
-  [`grafana/provisioning/datasources/infinity.yaml`](../grafana/provisioning/datasources/infinity.yaml).
-  Namerno **bez base URL-a**; paneli koriste apsolutne URL-ove
-  (`http://host.docker.internal:8080/...`) da bi se izbegli Infinity base-URL provisioning problemi.
-- **Dashboard** „Music App Report (proste sekcije)" u folderu **Reports** —
-  [`grafana/dashboards/music-app-report.json`](../grafana/dashboards/music-app-report.json).
-
-Bind mount-ovi su dodati u [`docker-compose.yml`](../docker-compose.yml) grafana servis:
-`./grafana/provisioning → /etc/grafana/provisioning` i
-`./grafana/dashboards → /var/lib/grafana/dashboards`.
-
-### Paneli i endpoint-i
-
-| Panel (tabela) | Endpoint | Kolone |
-|----------------|----------|--------|
+| Panel | Endpoint | Kolone |
+|-------|----------|--------|
 | Pesme po žanru | `GET /api/reports/songs?genre={genre}` | songId, title, artistName, genre, durationSeconds, playCount |
-| Pesme po trajanju | `GET /api/reports/songs/by-duration?min={min}&max={max}` | isto (6 kolona) |
-
-`SongRow` JSON = `songId, title, artistName, genre, durationSeconds, playCount` (ravan niz objekata).
-
-### Dashboard varijable (filteri)
-
-| Varijabla | Tip | Default | Uticaj |
-|-----------|-----|---------|--------|
-| `genre` | custom | prazna (prva) stavka = svi žanrovi | `?genre=${genre}` u panelu „Pesme po žanru" |
-| `minDur` | textbox | `120` | `?min=${minDur}` u panelu „Pesme po trajanju" |
-| `maxDur` | textbox | `240` | `?max=${maxDur}` u panelu „Pesme po trajanju" |
-
-Promena varijable osvežava odgovarajuću tabelu (žanr opcioni — prazna vrednost vraća sve pesme).
-
-> **Napomena o „Svi" opciji:** Grafana *custom* varijabla ne podržava par „labela : prazna
-> vrednost" (npr. `Svi : `) — parser tada ceo token (`Svi :`) tretira kao vrednost i šalje
-> `?genre=Svi :`, što vraća prazno (`[]`). Zato je opcija „svi žanrovi" definisana kao **prazna
-> prva stavka** (vodeći zarez u `query`-ju: `,rock,pop,...`), koja se interpolira u `?genre=`
-> i backend vraća sve pesme. Varijabla nosi labelu „Žanr (prazno = svi)".
-
-> **Napomena:** primeri endpoint-a iz sekcije 7 (`/api/reports/songs/by-genre`,
-> `/api/reports/songs/top`) su **zastareli** — stvarni implementirani endpoint-i su
-> `GET /api/reports/songs` i `GET /api/reports/songs/by-duration` (vidi tabelu iznad).
+| Pesme po trajanju | `GET /api/reports/songs/by-duration?min={min}&max={max}` | isto |

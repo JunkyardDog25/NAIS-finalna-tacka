@@ -291,3 +291,17 @@ LIMIT 10;
 ```
 
 **Obavezno:** publish pre listen — inače `title` na graf čvoru može biti prazan.
+
+---
+
+## 7. Grafana (ceo izveštaj)
+
+Dashboard **Music App Report** uključuje i proste (Mongo) i složenu (Neo4j CF) sekciju —
+automatski iz [`grafana/dashboards/music-app-report.json`](../grafana/dashboards/music-app-report.json).
+
+```powershell
+docker compose restart grafana
+# http://localhost:3000/d/music-app-report
+```
+
+Detalji: [`grafana-report-setup.md`](grafana-report-setup.md).
