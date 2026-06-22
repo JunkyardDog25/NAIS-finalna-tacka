@@ -27,7 +27,7 @@ Saga **ne kreira pesmu** — samo povećava `playCount` u Mongo i `LISTENED` u N
 Najlakši način za (5) i (6): prvo pokreni **PUBLISH_SONG** (`POST /api/songs`), sačekaj
 `COMPLETED`, pa tek onda RECORD_LISTEN.
 
-> **Baza:** aplikacija piše u Mongo bazu **`musicapp`**. Sve `mongosh` komande ovde
+> **Baza:** aplikacija piše u Mongo bazu `**musicapp`**. Sve `mongosh` komande ovde
 > koriste `musicapp`. (Ako vidiš podatke samo u `test`, app je verovatno radila sa
 > zastarelim `spring.data.mongodb.*` property-jima — vidi korak 2.)
 
@@ -85,7 +85,7 @@ Ako Mongo nije healthy, sačekaj ~30–60 s i ponovi `docker compose ps`.
 ## 2. Proveri konfiguraciju aplikacije
 
 U `src/main/resources/application.properties` za **Scenario 1** (happy path) mora biti
-(**Spring Boot 4** — `spring.mongodb.*`):
+(**Spring Boot 4** — `spring.mongodb.`*):
 
 ```properties
 spring.mongodb.uri=mongodb://localhost:27017/musicapp?replicaSet=rs0
@@ -240,10 +240,6 @@ $playCountAfter = (docker exec -i musicapp-mongo mongosh musicapp --quiet --eval
 "playCountAfter=$playCountAfter (očekivano: $([int]$playCountBefore + 1))"
 $playCountBefore = $playCountAfter   # osveži baseline za sledeće slušanje (korak 7.5)
 ```
-
-> **Napomena:** `$playCountBefore` je vrednost **pre ovog** slušanja. Posle provere ga
-> postavi na `$playCountAfter`, inače će pri drugom slušanju „očekivano“ i dalje računati
-> od stare vrednosti (npr. 0+1=1 iako je u bazi već 2).
 
 ### 7.4 Provera Neo4j (`LISTENED` relacija)
 
