@@ -16,7 +16,10 @@ public class Playlist {
 
     @Id
     private String id;
+
     private String ownerId;
+
     private String name;
+
     private List<String> songIds = new ArrayList<>();
 }

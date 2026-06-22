@@ -1,0 +1,296 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "songId", "text": "songId", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "artistName", "text": "artistName", "type": "string" },
+            { "selector": "genre", "text": "genre", "type": "string" },
+            { "selector": "durationSeconds", "text": "durationSeconds", "type": "number" },
+            { "selector": "playCount", "text": "playCount", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/songs?genre=${genre}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "Pesme po žanru",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "songId", "text": "songId", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "artistName", "text": "artistName", "type": "string" },
+            { "selector": "genre", "text": "genre", "type": "string" },
+            { "selector": "durationSeconds", "text": "durationSeconds", "type": "number" },
+            { "selector": "playCount", "text": "playCount", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/songs/by-duration?min=${minDur}&max=${maxDur}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "Pesme po trajanju",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "description": "Složena sekcija (Neo4j): collaborative filtering preko LISTENED grafa.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "poklapanje" },
+            "properties": [{ "id": "custom.width", "value": 120 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 20 },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "songId", "text": "songId", "type": "string" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "poklapanje", "text": "poklapanje", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/recommendations/${userId}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "CF preporuke (složena sekcija)",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "description": "Grafikon složene sekcije: broj korisničkih poklapanja po predloženoj pesmi.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 20 },
+      "id": 4,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": { "mode": "single", "sort": "none" },
+        "xField": "title",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "poklapanje", "text": "poklapanje", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/recommendations/${userId}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "CF preporuke — bar chart",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": { "include": { "names": ["title", "poklapanje"] } }
+        }
+      ],
+      "type": "barchart"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "tags": ["nais", "report", "proste-sekcije", "slozena-sekcija", "neo4j-cf"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "", "value": "" },
+        "description": "Prazna (prva) stavka = svi žanrovi.",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Žanr",
+        "multi": false,
+        "name": "genre",
+        "options": [
+          { "selected": true, "text": "", "value": "" },
+          { "selected": false, "text": "rock", "value": "rock" },
+          { "selected": false, "text": "pop", "value": "pop" },
+          { "selected": false, "text": "jazz", "value": "jazz" },
+          { "selected": false, "text": "hip-hop", "value": "hip-hop" },
+          { "selected": false, "text": "electronic", "value": "electronic" }
+        ],
+        "query": ",rock,pop,jazz,hip-hop,electronic",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": { "selected": false, "text": "120", "value": "120" },
+        "hide": 0,
+        "name": "minDur",
+        "options": [{ "selected": true, "text": "120", "value": "120" }],
+        "query": "120",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": { "selected": false, "text": "240", "value": "240" },
+        "hide": 0,
+        "name": "maxDur",
+        "options": [{ "selected": true, "text": "240", "value": "240" }],
+        "query": "240",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": { "selected": true, "text": "u1", "value": "u1" },
+        "description": "Korisnik za collaborative filtering (složena Neo4j sekcija).",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Korisnik (CF)",
+        "multi": false,
+        "name": "userId",
+        "options": [
+          { "selected": true, "text": "u1", "value": "u1" },
+          { "selected": false, "text": "u2", "value": "u2" },
+          { "selected": false, "text": "u3", "value": "u3" }
+        ],
+        "query": "u1,u2,u3",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Music App Report",
+  "uid": "music-app-report",
+  "version": 2,
+  "weekStart": ""
+}

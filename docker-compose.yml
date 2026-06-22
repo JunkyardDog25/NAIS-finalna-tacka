@@ -44,6 +44,24 @@ services:
       retries: 20
       start_period: 20s
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: musicapp-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "5672:5672"     # AMQP protocol (app <-> broker)
+      - "15672:15672"   # Management UI / HTTP
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
   grafana:
     image: grafana/grafana:latest
     container_name: musicapp-grafana
@@ -53,9 +71,13 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      # File provisioning: datasource + dashboard se auto-učitavaju (bez ručnog klikanja).
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
 
 volumes:
   mongo-data:
   neo4j-data:
   neo4j-logs:
   grafana-data:
+  rabbitmq-data:

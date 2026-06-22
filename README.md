@@ -65,14 +65,20 @@ Default credentials:
 
 ## 2. Configuration
 
-`application.properties` reads everything from env vars with sensible local defaults:
+`application.properties` uses **Spring Boot 4** property names. Mongo connection settings
+use the `spring.mongodb.*` prefix (the old `spring.data.mongodb.*` host/port/database keys
+are ignored in Boot 4 and the app would default to database `test`).
 
-| Env var          | Default                                                  |
-|------------------|----------------------------------------------------------|
-| `MONGODB_URI`    | `mongodb://localhost:27017/musicapp?replicaSet=rs0`      |
-| `NEO4J_URI`      | `bolt://localhost:7687`                                  |
-| `NEO4J_USERNAME` | `neo4j`                                                  |
-| `NEO4J_PASSWORD` | `database`                                               |
+| Property / env var | Default |
+|--------------------|---------|
+| `spring.mongodb.uri` | `mongodb://localhost:27017/musicapp?replicaSet=rs0` |
+| `SPRING_MONGODB_URI` | same (env override for `spring.mongodb.uri`) |
+| `NEO4J_URI` | `bolt://localhost:7687` |
+| `NEO4J_USERNAME` | `neo4j` |
+| `NEO4J_PASSWORD` | `database` |
+
+In MongoDB Compass, connect to `localhost:27017` and open database **`musicapp`** (not
+`test`) to see application data.
 
 ## 3. Build & run the app
 

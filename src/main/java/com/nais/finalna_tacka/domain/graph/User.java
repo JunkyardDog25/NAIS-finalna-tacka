@@ -19,6 +19,7 @@ public class User {
 
     @Id
     private String userId;
+
     private String username;
 
     @Relationship(type = "FOLLOWS", direction = Relationship.Direction.OUTGOING)

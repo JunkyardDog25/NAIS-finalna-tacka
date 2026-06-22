@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: SpringReports
+    uid: springreports
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    isDefault: true
+    # Namerno BEZ base URL-a — paneli koriste apsolutne URL-ove
+    # (http://host.docker.internal:8080/...), čime se izbegavaju Infinity
+    # base-URL provisioning problemi.

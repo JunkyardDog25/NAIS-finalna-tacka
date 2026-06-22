@@ -15,5 +15,6 @@ public class Artist {
 
     @Id
     private String artistId;
+
     private String name;
 }
