@@ -71,6 +71,9 @@ services:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      # File provisioning: datasource + dashboard se auto-učitavaju (bez ručnog klikanja).
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
 
 volumes:
   mongo-data:

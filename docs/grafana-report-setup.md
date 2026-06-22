@@ -148,3 +148,57 @@ Ti endpoint-i **nisu deo ovog CF zadatka** — dodaju se kada kolega implementir
 - **Složena sekcija** = Neo4j CF upit u `RecommendationService`, REST u `ReportController`
 - **Grafikon** = Grafana bar chart nad istim JSON endpoint-om
 - Logika ostaje u Spring-u; Grafana je samo prezentacioni sloj
+
+---
+
+## 8. Proste sekcije — auto-provisioning (bez ručnog klikanja)
+
+Dve proste sekcije (Mongo-only tabele pesama) se **automatski** učitavaju kroz Grafana
+**file provisioning**. Ništa se ne klika ručno — samo:
+
+```powershell
+docker compose up -d grafana
+# Spring Boot app na :8080 (./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev")
+```
+
+Posle starta Grafana sama kreira:
+
+- **Datasource** `SpringReports` (uid `springreports`, Infinity, default) —
+  [`grafana/provisioning/datasources/infinity.yaml`](../grafana/provisioning/datasources/infinity.yaml).
+  Namerno **bez base URL-a**; paneli koriste apsolutne URL-ove
+  (`http://host.docker.internal:8080/...`) da bi se izbegli Infinity base-URL provisioning problemi.
+- **Dashboard** „Music App Report (proste sekcije)" u folderu **Reports** —
+  [`grafana/dashboards/music-app-report.json`](../grafana/dashboards/music-app-report.json).
+
+Bind mount-ovi su dodati u [`docker-compose.yml`](../docker-compose.yml) grafana servis:
+`./grafana/provisioning → /etc/grafana/provisioning` i
+`./grafana/dashboards → /var/lib/grafana/dashboards`.
+
+### Paneli i endpoint-i
+
+| Panel (tabela) | Endpoint | Kolone |
+|----------------|----------|--------|
+| Pesme po žanru | `GET /api/reports/songs?genre={genre}` | songId, title, artistName, genre, durationSeconds, playCount |
+| Pesme po trajanju | `GET /api/reports/songs/by-duration?min={min}&max={max}` | isto (6 kolona) |
+
+`SongRow` JSON = `songId, title, artistName, genre, durationSeconds, playCount` (ravan niz objekata).
+
+### Dashboard varijable (filteri)
+
+| Varijabla | Tip | Default | Uticaj |
+|-----------|-----|---------|--------|
+| `genre` | custom | prazna (prva) stavka = svi žanrovi | `?genre=${genre}` u panelu „Pesme po žanru" |
+| `minDur` | textbox | `120` | `?min=${minDur}` u panelu „Pesme po trajanju" |
+| `maxDur` | textbox | `240` | `?max=${maxDur}` u panelu „Pesme po trajanju" |
+
+Promena varijable osvežava odgovarajuću tabelu (žanr opcioni — prazna vrednost vraća sve pesme).
+
+> **Napomena o „Svi" opciji:** Grafana *custom* varijabla ne podržava par „labela : prazna
+> vrednost" (npr. `Svi : `) — parser tada ceo token (`Svi :`) tretira kao vrednost i šalje
+> `?genre=Svi :`, što vraća prazno (`[]`). Zato je opcija „svi žanrovi" definisana kao **prazna
+> prva stavka** (vodeći zarez u `query`-ju: `,rock,pop,...`), koja se interpolira u `?genre=`
+> i backend vraća sve pesme. Varijabla nosi labelu „Žanr (prazno = svi)".
+
+> **Napomena:** primeri endpoint-a iz sekcije 7 (`/api/reports/songs/by-genre`,
+> `/api/reports/songs/top`) su **zastareli** — stvarni implementirani endpoint-i su
+> `GET /api/reports/songs` i `GET /api/reports/songs/by-duration` (vidi tabelu iznad).
