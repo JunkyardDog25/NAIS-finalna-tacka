@@ -25,7 +25,7 @@ docker exec -i musicapp-mongo mongosh musicapp --quiet --eval \
 # 1) Publish a song -> returns {"sagaId":"..."}
 SAGA=$(curl -s -X POST http://localhost:8080/api/songs \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Test Song","artistId":"artist-1","albumId":"album-1","genre":"rock","durationSeconds":200}' \
+  -d '{"title":"Test Song","artist":{"artistId":"artist-1","artistName":"The Testers"},"albumId":"album-1","genre":"rock","durationSeconds":200}' \
   | sed -E 's/.*"sagaId":"([^"]+)".*/\1/')
 echo "sagaId=$SAGA"
 
@@ -65,7 +65,7 @@ SAGA_GRAPH_FAIL_CREATE=true ./mvnw spring-boot:run
 ```bash
 SAGA=$(curl -s -X POST http://localhost:8080/api/songs \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Rollback Song","artistId":"artist-1","genre":"rock","durationSeconds":150}' \
+  -d '{"title":"Rollback Song","artist":{"artistId":"artist-1","artistName":"The Testers"},"genre":"rock","durationSeconds":150}' \
   | sed -E 's/.*"sagaId":"([^"]+)".*/\1/')
 
 curl -s http://localhost:8080/api/sagas/$SAGA   # STARTED -> MONGO_DONE -> COMPENSATING -> FAILED
@@ -95,6 +95,6 @@ docker exec -i musicapp-mongo mongosh musicapp --quiet --eval \
 ```powershell
 $r = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/songs `
   -ContentType application/json `
-  -Body '{"title":"Test Song","artistId":"artist-1","genre":"rock","durationSeconds":200}'
+  -Body '{"title":"Test Song","artist":{"artistId":"artist-1","artistName":"The Testers"},"genre":"rock","durationSeconds":200}'
 Invoke-RestMethod -Uri "http://localhost:8080/api/sagas/$($r.sagaId)"
 ```

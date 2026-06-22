@@ -27,8 +27,9 @@ Saga **ne kreira pesmu** — samo povećava `playCount` u Mongo i `LISTENED` u N
 Najlakši način za (5) i (6): prvo pokreni **PUBLISH_SONG** (`POST /api/songs`), sačekaj
 `COMPLETED`, pa tek onda RECORD_LISTEN.
 
-> **Baza:** aplikacija piše u Mongo bazu `**test`**. Sve `mongosh` komande ovde
-> koriste `test`.
+> **Baza:** aplikacija piše u Mongo bazu **`musicapp`**. Sve `mongosh` komande ovde
+> koriste `musicapp`. (Ako vidiš podatke samo u `test`, app je verovatno radila sa
+> zastarelim `spring.data.mongodb.*` property-jima — vidi korak 2.)
 
 ---
 
@@ -83,13 +84,16 @@ Ako Mongo nije healthy, sačekaj ~30–60 s i ponovi `docker compose ps`.
 
 ## 2. Proveri konfiguraciju aplikacije
 
-U `src/main/resources/application.properties` za **Scenario 1** (happy path) mora biti:
+U `src/main/resources/application.properties` za **Scenario 1** (happy path) mora biti
+(**Spring Boot 4** — `spring.mongodb.*`):
 
 ```properties
-spring.data.mongodb.database=test
-spring.data.mongodb.replica-set-name=rs0
+spring.mongodb.uri=mongodb://localhost:27017/musicapp?replicaSet=rs0
 saga.graph.fail-listen=false
 ```
+
+> Ne koristi `spring.data.mongodb.database=...` — u Boot 4 se ignoriše i app piše u
+> podrazumevanu bazu `test`.
 
 Neo4j lozinka u Docker-u podrazumevano je `database` (vidi `docker-compose.yml` /
 `NEO4J_AUTH`).
@@ -135,13 +139,13 @@ Ako je `503` / `DOWN`, ne nastavljaj — prvo popravi Docker konekciju.
 ## 5. Seed korisnika `u1` (Mongo)
 
 ```powershell
-'db.users.updateOne({_id:"u1"},{$set:{username:"demo",email:"demo@test.rs"}},{upsert:true})' | docker exec -i musicapp-mongo mongosh test --quiet
+'db.users.updateOne({_id:"u1"},{$set:{username:"demo",email:"demo@test.rs"}},{upsert:true})' | docker exec -i musicapp-mongo mongosh musicapp --quiet
 ```
 
 Provera:
 
 ```powershell
-'db.users.findOne({_id:"u1"})' | docker exec -i musicapp-mongo mongosh test --quiet
+'db.users.findOne({_id:"u1"})' | docker exec -i musicapp-mongo mongosh musicapp --quiet
 ```
 
 ---
@@ -175,7 +179,7 @@ Mora biti `**COMPLETED**`. Ako je `FAILED`, pogledaj app log (Mongo/Neo4j/Rabbit
 ### 6.3 Uzmi `songId` i početni `playCount`
 
 ```powershell
-$json = ('JSON.stringify(db.songs.findOne({title:"Listen Demo"}, {_id:1, playCount:1}))' | docker exec -i musicapp-mongo mongosh test --quiet --norc) -join "`n"
+$json = ('JSON.stringify(db.songs.findOne({title:"Listen Demo"}, {_id:1, playCount:1}))' | docker exec -i musicapp-mongo mongosh musicapp --quiet --norc) -join "`n"
 $m = [regex]::Match($json, '\{.*\}')
 $doc = $m.Value | ConvertFrom-Json
 $songId = $doc._id
@@ -201,8 +205,8 @@ Pre Scenario 1 proveri:
 - [ ] `docker compose ps` — mongo, neo4j, rabbitmq Up
 - [ ] App radi, `/health` → `UP`
 - [ ] `saga.graph.fail-listen=false`
-- [ ] Korisnik `u1` postoji u `test.users`
-- [ ] Pesma postoji u `test.songs`, imaš `$songId`
+- [ ] Korisnik `u1` postoji u `musicapp.users`
+- [ ] Pesma postoji u `musicapp.songs`, imaš `$songId`
 - [ ] Publish saga za tu pesmu je bila `COMPLETED`
 - [ ] Znaš `$playCountBefore` (obično `0`)
 
@@ -232,7 +236,7 @@ Očekivano: `STARTED` → `MONGO_DONE` → `**COMPLETED**`.
 ### 7.3 Provera Mongo (`playCount` +1)
 
 ```powershell
-$playCountAfter = (docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)").Trim()
+$playCountAfter = (docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)").Trim()
 "playCountAfter=$playCountAfter (očekivano: $([int]$playCountBefore + 1))"
 $playCountBefore = $playCountAfter   # osveži baseline za sledeće slušanje (korak 7.5)
 ```
@@ -255,7 +259,7 @@ Pre drugog slušanja **ponovo pročitaj** trenutni `playCount` (ili koristi `$pl
 ako si ga osvežio u koraku 7.3):
 
 ```powershell
-$playCountBefore = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
+$playCountBefore = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
 "playCountBefore =$playCountBefore"
 
 $listen2 = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/users/u2/listens/$songId"
@@ -265,7 +269,7 @@ do {
   "status=$($saga2.status)"
 } while ($saga2.status -notin @("COMPLETED","FAILED"))
 
-$playCountAfter = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
+$playCountAfter = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
 "playCountAfter=$playCountAfter (očekivano: $($playCountBefore + 1))"
 ```
 
@@ -303,7 +307,7 @@ Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force
 
 ```powershell
 # Pre slušanja
-$playCountBeforeFail = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
+$playCountBeforeFail = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
 "playCountBeforeFail=$playCountBeforeFail"
 
 $listen = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/users/u1/listens/$songId"
@@ -314,7 +318,7 @@ do {
 } while ($saga.status -notin @("COMPLETED","FAILED"))
 
 # Posle slušanja — kompenzacija mora da vrati playCount na početnu
-$playCountAfterFail = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
+$playCountAfterFail = [int]([regex]::Match((docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)"), '\d+').Value)
 "sagaStatus=$($saga.status) (očekivano: FAILED)"
 "playCountAfterFail=$playCountAfterFail (očekivano: $playCountBeforeFail — kompenzacija +1/−1)"
 ```
@@ -327,7 +331,7 @@ Očekivano: `STARTED` → `MONGO_DONE` → `COMPENSATING` → `**FAILED**`.
 - Mongo `playCount` **nepromenjen** u odnosu na pre pokušaja (forward +1, kompenzacija −1):
 
 ```powershell
-$playCountAfterFail = (docker exec -i musicapp-mongo mongosh test --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)").Trim()
+$playCountAfterFail = (docker exec -i musicapp-mongo mongosh musicapp --quiet --eval "print(db.songs.findOne({_id:'$songId'}).playCount)").Trim()
 "pre=$playCountBeforeFail posle=$playCountAfterFail (mora biti isto)"
 ```
 
@@ -368,7 +372,7 @@ dovoljno biti svestan ograničenja.
 Brza provera broja dokumenata u pravoj bazi:
 
 ```powershell
-'print("songs=" + db.songs.countDocuments() + " users=" + db.users.countDocuments() + " sagas=" + db.saga_state.countDocuments())' | docker exec -i musicapp-mongo mongosh test --quiet
+'print("songs=" + db.songs.countDocuments() + " users=" + db.users.countDocuments() + " sagas=" + db.saga_state.countDocuments())' | docker exec -i musicapp-mongo mongosh musicapp --quiet
 ```
 
 ---
