@@ -41,6 +41,9 @@ public class CfReportDataSeeder implements ApplicationRunner {
     static final String SONG_A_ID = "cf-song-a";
     static final String SONG_B_ID = "cf-song-b";
     static final String SONG_C_ID = "cf-song-c";
+    static final String SONG_D_ID = "cf-song-d";
+    static final String SONG_E_ID = "cf-song-e";
+    static final String SONG_F_ID = "cf-song-f";
 
     private final SagaOrchestrator orchestrator;
     private final SagaStateRepository sagaStateRepository;
@@ -58,21 +61,38 @@ public class CfReportDataSeeder implements ApplicationRunner {
             return;
         }
 
-        log.info("Seeding CF report demo data (publish A/B/C, users u1–u3, LISTENED relacije)...");
+        log.info("Seeding CF report demo data (publish A–F, users u1–u5, LISTENED relacije)...");
 
         Artist artist = seedArtist();
-        publishSong(SONG_A_ID, "Song A", artist);
-        publishSong(SONG_B_ID, "Song B", artist);
-        publishSong(SONG_C_ID, "Song C", artist);
+        publishSong(SONG_A_ID, "Song A", "rock", artist);
+        publishSong(SONG_B_ID, "Song B", "rock", artist);
+        publishSong(SONG_C_ID, "Song C", "pop", artist);
+        publishSong(SONG_D_ID, "Song D", "pop", artist);
+        publishSong(SONG_E_ID, "Song E", "jazz", artist);
+        publishSong(SONG_F_ID, "Song F", "electronic", artist);
 
         seedUser("u1");
         seedUser("u2");
         seedUser("u3");
+        seedUser("u4");
+        seedUser("u5");
 
+        // u1 i u2 dele A+B (jaki "blizanci") — u2 dodatno sluša D => snažna preporuka D za u1
         recordListen("u1", SONG_A_ID);
+        recordListen("u1", SONG_B_ID);
         recordListen("u2", SONG_A_ID);
         recordListen("u2", SONG_B_ID);
+        recordListen("u2", SONG_D_ID);
+
+        // u4 takođe deli A sa u1 i sluša C => druga preporuka (manje poklapanje) za u1
+        recordListen("u4", SONG_A_ID);
+        recordListen("u4", SONG_C_ID);
+
+        // u3 i u5 grade dodatnu dubinu grafa (jazz/electronic klaster, bez preklapanja sa u1)
         recordListen("u3", SONG_C_ID);
+        recordListen("u3", SONG_E_ID);
+        recordListen("u5", SONG_E_ID);
+        recordListen("u5", SONG_F_ID);
 
         log.info("CF report demo seed complete. Proveri: GET /api/reports/recommendations/u1");
     }
@@ -96,13 +116,13 @@ public class CfReportDataSeeder implements ApplicationRunner {
         });
     }
 
-    private void publishSong(String songId, String title, Artist artist) {
+    private void publishSong(String songId, String title, String genre, Artist artist) {
         Song song = new Song();
         song.setId(songId);
         song.setTitle(title);
         song.setArtist(artist);
         song.setAlbumId("album-cf");
-        song.setGenre("rock");
+        song.setGenre(genre);
         song.setDurationSeconds(180);
         song.setPlayCount(0);
         song.setCreatedAt(Instant.now());
