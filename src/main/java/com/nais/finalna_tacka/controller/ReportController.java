@@ -2,8 +2,10 @@ package com.nais.finalna_tacka.controller;
 
 import com.nais.finalna_tacka.dto.SongRecommendation;
 import com.nais.finalna_tacka.dto.SongRow;
+import com.nais.finalna_tacka.dto.TopUser;
 import com.nais.finalna_tacka.service.RecommendationService;
 import com.nais.finalna_tacka.service.SongReportService;
+import com.nais.finalna_tacka.service.TopUsersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +17,7 @@ import java.util.List;
 
 /**
  * REST izveštaji za Grafana Infinity datasource.
- * Složena sekcija: CF preporuke iz Neo4j grafa.
+ * Složene sekcije: CF preporuke iz Neo4j grafa; Top korisnici po popularnosti plejlisti (Mongo playCount + Neo4j LISTENED).
  * Proste sekcije: tabele pesama čitane direktno iz MongoDB.
  */
 @RestController
@@ -25,10 +27,17 @@ public class ReportController {
 
     private final RecommendationService recommendationService;
     private final SongReportService songReportService;
+    private final TopUsersService topUsersService;
 
     @GetMapping("/recommendations/{userId}")
     public List<SongRecommendation> recommendations(@PathVariable String userId) {
         return recommendationService.recommendFor(userId);
+    }
+
+    /** Složena sekcija: top N korisnika čije plejliste sadrže najpopularnije pesme (Mongo playCount + Neo4j LISTENED). */
+    @GetMapping("/top-users")
+    public List<TopUser> topUsers(@RequestParam(defaultValue = "3") int limit) {
+        return topUsersService.topByPlaylistPopularity(limit);
     }
 
     @GetMapping("/songs")

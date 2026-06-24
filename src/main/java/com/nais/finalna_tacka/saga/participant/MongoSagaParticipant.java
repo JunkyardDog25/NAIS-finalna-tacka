@@ -2,10 +2,13 @@ package com.nais.finalna_tacka.saga.participant;
 
 import com.nais.finalna_tacka.config.RabbitConfig;
 import com.nais.finalna_tacka.saga.messages.MongoCompensateListen;
+import com.nais.finalna_tacka.saga.messages.MongoCreatePlaylist;
 import com.nais.finalna_tacka.saga.messages.MongoCreateSong;
+import com.nais.finalna_tacka.saga.messages.MongoDeletePlaylist;
 import com.nais.finalna_tacka.saga.messages.MongoDeleteSong;
 import com.nais.finalna_tacka.saga.messages.MongoRecordListen;
 import com.nais.finalna_tacka.service.ListenMongoService;
+import com.nais.finalna_tacka.service.PlaylistMongoService;
 import com.nais.finalna_tacka.service.SongMongoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -32,6 +35,7 @@ public class MongoSagaParticipant {
 
     private final SongMongoService songMongoService;
     private final ListenMongoService listenMongoService;
+    private final PlaylistMongoService playlistMongoService;
     private final SagaReplyPublisher replyPublisher;
 
     @RabbitHandler
@@ -56,5 +60,17 @@ public class MongoSagaParticipant {
     public void onCompensateListen(MongoCompensateListen cmd) {
         replyPublisher.runAndReply(cmd.sagaId(), PARTICIPANT, "compensateListen",
                 () -> listenMongoService.compensateListen(cmd.userId(), cmd.songId()));
+    }
+
+    @RabbitHandler
+    public void onCreatePlaylist(MongoCreatePlaylist cmd) {
+        replyPublisher.runAndReply(cmd.sagaId(), PARTICIPANT, "createPlaylist",
+                () -> playlistMongoService.createPlaylist(cmd.payload()));
+    }
+
+    @RabbitHandler
+    public void onDeletePlaylist(MongoDeletePlaylist cmd) {
+        replyPublisher.runAndReply(cmd.sagaId(), PARTICIPANT, "deletePlaylist",
+                () -> playlistMongoService.deletePlaylist(cmd.playlistId()));
     }
 }

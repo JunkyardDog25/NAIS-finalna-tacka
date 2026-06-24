@@ -3,15 +3,19 @@ package com.nais.finalna_tacka.saga.orchestrator;
 import com.nais.finalna_tacka.config.RabbitConfig;
 import com.nais.finalna_tacka.domain.mongo.Song;
 import com.nais.finalna_tacka.repository.mongo.SagaStateRepository;
+import com.nais.finalna_tacka.saga.messages.GraphCreatePlaylist;
 import com.nais.finalna_tacka.saga.messages.GraphCreateSong;
 import com.nais.finalna_tacka.saga.messages.GraphDeleteSong;
 import com.nais.finalna_tacka.saga.messages.GraphRecordListen;
 import com.nais.finalna_tacka.saga.messages.MongoCompensateListen;
+import com.nais.finalna_tacka.saga.messages.MongoCreatePlaylist;
 import com.nais.finalna_tacka.saga.messages.MongoCreateSong;
+import com.nais.finalna_tacka.saga.messages.MongoDeletePlaylist;
 import com.nais.finalna_tacka.saga.messages.MongoDeleteSong;
 import com.nais.finalna_tacka.saga.messages.MongoRecordListen;
 import com.nais.finalna_tacka.saga.messages.SagaReply;
 import com.nais.finalna_tacka.saga.state.ListenPayload;
+import com.nais.finalna_tacka.saga.state.PlaylistPayload;
 import com.nais.finalna_tacka.saga.state.SagaState;
 import com.nais.finalna_tacka.saga.state.SagaStatus;
 import com.nais.finalna_tacka.saga.state.SagaType;
@@ -82,6 +86,16 @@ public class SagaOrchestrator {
         return state.getSagaId();
     }
 
+    /** Begin a CREATE_PLAYLIST saga: insert the playlist in Mongo first, then mirror ownership into Neo4j. */
+    public String startCreatePlaylist(PlaylistPayload payload) {
+        SagaState state = repository.save(SagaState.startCreatePlaylist(payload));
+        log.info("Saga {} CREATE_PLAYLIST started for playlistId={} ownerId={}",
+                state.getSagaId(), payload.playlistId(), payload.ownerId());
+        send(RabbitConfig.MONGO_COMMANDS_QUEUE,
+                new MongoCreatePlaylist(state.getSagaId(), payload));
+        return state.getSagaId();
+    }
+
     // --- Reply handling (drives the flow) ---
 
     @RabbitListener(queues = RabbitConfig.SAGA_REPLIES_QUEUE)
@@ -104,6 +118,7 @@ public class SagaOrchestrator {
             case PUBLISH_SONG -> handlePublish(state, reply);
             case DELETE_SONG -> handleDelete(state, reply);
             case RECORD_LISTEN -> handleRecordListen(state, reply);
+            case CREATE_PLAYLIST -> handleCreatePlaylist(state, reply);
         }
     }
 
@@ -184,6 +199,34 @@ public class SagaOrchestrator {
                 }
             }
             default -> log.warn("Saga {} unexpected status {} for RECORD_LISTEN reply",
+                    state.getSagaId(), state.getStatus());
+        }
+    }
+
+    private void handleCreatePlaylist(SagaState state, SagaReply reply) {
+        PlaylistPayload playlist = state.getPlaylistPayload();
+        switch (state.getStatus()) {
+            case STARTED -> { // reply is for the Mongo create step
+                if (reply.success()) {
+                    save(state, SagaStatus.MONGO_DONE);
+                    send(RabbitConfig.GRAPH_COMMANDS_QUEUE,
+                            new GraphCreatePlaylist(state.getSagaId(), playlist));
+                } else {
+                    save(state, SagaStatus.FAILED);
+                }
+            }
+            case MONGO_DONE -> { // reply is for the Graph create step
+                if (reply.success()) {
+                    save(state, SagaStatus.COMPLETED);
+                } else {
+                    // Compensate the Mongo create by deleting the document, then fail.
+                    save(state, SagaStatus.COMPENSATING);
+                    send(RabbitConfig.MONGO_COMMANDS_QUEUE,
+                            new MongoDeletePlaylist(state.getSagaId(), playlist.playlistId()));
+                    save(state, SagaStatus.FAILED);
+                }
+            }
+            default -> log.warn("Saga {} unexpected status {} for CREATE_PLAYLIST reply",
                     state.getSagaId(), state.getStatus());
         }
     }

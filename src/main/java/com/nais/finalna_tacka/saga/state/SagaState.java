@@ -32,6 +32,9 @@ public class SagaState {
     /** Payload za RECORD_LISTEN sage (userId + songId). */
     private ListenPayload listenPayload;
 
+    /** Payload za CREATE_PLAYLIST sage (playlistId + ownerId + name + songIds). */
+    private PlaylistPayload playlistPayload;
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -56,6 +59,19 @@ public class SagaState {
         state.sagaType = SagaType.RECORD_LISTEN;
         state.status = SagaStatus.STARTED;
         state.listenPayload = listenPayload;
+        state.createdAt = now;
+        state.updatedAt = now;
+        return state;
+    }
+
+    /** Create a fresh CREATE_PLAYLIST saga in {@link SagaStatus#STARTED}. */
+    public static SagaState startCreatePlaylist(PlaylistPayload playlistPayload) {
+        Instant now = Instant.now();
+        SagaState state = new SagaState();
+        state.sagaId = UUID.randomUUID().toString();
+        state.sagaType = SagaType.CREATE_PLAYLIST;
+        state.status = SagaStatus.STARTED;
+        state.playlistPayload = playlistPayload;
         state.createdAt = now;
         state.updatedAt = now;
         return state;

@@ -221,11 +221,68 @@
         }
       ],
       "type": "barchart"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+      "description": "Složena sekcija (Mongo + Neo4j): top korisnici po popularnosti svojih plejlisti. totalPlayCount = suma playCount pesama iz svih plejlisti koje korisnik poseduje (Mongo: ownerId + songIds + playCount); korisnici su rangirani po toj sumi. totalListeners (doseg) dolazi iz Neo4j LISTENED grafa.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 29 },
+      "id": 6,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^totalPlayCount$/",
+          "values": true
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "columns": [
+            { "selector": "ownerName", "text": "ownerName", "type": "string" },
+            { "selector": "totalPlayCount", "text": "totalPlayCount", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "springreports" },
+          "filters": [],
+          "format": "table",
+          "global_query_id": "",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "$",
+          "source": "url",
+          "type": "json",
+          "url": "http://host.docker.internal:8080/api/reports/top-users?limit=${topN}",
+          "url_options": { "data": "", "method": "GET" }
+        }
+      ],
+      "title": "Top korisnici po popularnosti plejlisti — bar gauge (Mongo + Neo4j)",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": { "include": { "names": ["ownerName", "totalPlayCount"] } }
+        }
+      ],
+      "type": "bargauge"
     }
   ],
   "refresh": "",
   "schemaVersion": 38,
-  "tags": ["nais", "report", "proste-sekcije", "slozena-sekcija", "neo4j-cf"],
+  "tags": ["nais", "report", "proste-sekcije", "slozena-sekcija", "neo4j-cf", "top-users", "mongo-neo4j"],
   "templating": {
     "list": [
       {
@@ -278,9 +335,33 @@
         "options": [
           { "selected": true, "text": "u1", "value": "u1" },
           { "selected": false, "text": "u2", "value": "u2" },
-          { "selected": false, "text": "u3", "value": "u3" }
+          { "selected": false, "text": "u3", "value": "u3" },
+          { "selected": false, "text": "u4", "value": "u4" },
+          { "selected": false, "text": "u5", "value": "u5" },
+          { "selected": false, "text": "u6", "value": "u6" },
+          { "selected": false, "text": "u7", "value": "u7" },
+          { "selected": false, "text": "u8", "value": "u8" },
+          { "selected": false, "text": "u9", "value": "u9" },
+          { "selected": false, "text": "u10", "value": "u10" }
         ],
-        "query": "u1,u2,u3",
+        "query": "u1,u2,u3,u4,u5,u6,u7,u8,u9,u10",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": { "selected": true, "text": "3", "value": "3" },
+        "description": "Koliko top korisnika prikazati (složena sekcija Mongo + Neo4j).",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Top N (korisnici)",
+        "multi": false,
+        "name": "topN",
+        "options": [
+          { "selected": true, "text": "3", "value": "3" },
+          { "selected": false, "text": "5", "value": "5" },
+          { "selected": false, "text": "10", "value": "10" }
+        ],
+        "query": "3,5,10",
         "skipUrlSync": false,
         "type": "custom"
       }
@@ -291,6 +372,6 @@
   "timezone": "",
   "title": "Music App Report",
   "uid": "music-app-report",
-  "version": 2,
+  "version": 7,
   "weekStart": ""
 }

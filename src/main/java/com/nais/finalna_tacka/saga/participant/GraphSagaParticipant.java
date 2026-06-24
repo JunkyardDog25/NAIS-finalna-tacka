@@ -1,10 +1,12 @@
 package com.nais.finalna_tacka.saga.participant;
 
 import com.nais.finalna_tacka.config.RabbitConfig;
+import com.nais.finalna_tacka.saga.messages.GraphCreatePlaylist;
 import com.nais.finalna_tacka.saga.messages.GraphCreateSong;
 import com.nais.finalna_tacka.saga.messages.GraphDeleteSong;
 import com.nais.finalna_tacka.saga.messages.GraphRecordListen;
 import com.nais.finalna_tacka.service.ListenGraphService;
+import com.nais.finalna_tacka.service.PlaylistGraphService;
 import com.nais.finalna_tacka.service.SongGraphService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
@@ -31,6 +33,7 @@ public class GraphSagaParticipant {
 
     private final SongGraphService songGraphService;
     private final ListenGraphService listenGraphService;
+    private final PlaylistGraphService playlistGraphService;
     private final SagaReplyPublisher replyPublisher;
 
     @RabbitHandler
@@ -49,5 +52,11 @@ public class GraphSagaParticipant {
     public void onRecordListen(GraphRecordListen cmd) {
         replyPublisher.runAndReply(cmd.sagaId(), PARTICIPANT, "recordListen",
                 () -> listenGraphService.recordListen(cmd.userId(), cmd.songId()));
+    }
+
+    @RabbitHandler
+    public void onCreatePlaylist(GraphCreatePlaylist cmd) {
+        replyPublisher.runAndReply(cmd.sagaId(), PARTICIPANT, "createPlaylist",
+                () -> playlistGraphService.createPlaylist(cmd.payload()));
     }
 }
