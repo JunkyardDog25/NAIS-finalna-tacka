@@ -1,8 +1,10 @@
 package com.nais.finalna_tacka.controller;
 
+import com.nais.finalna_tacka.dto.GenrePlaylistRecommendation;
 import com.nais.finalna_tacka.dto.SongRecommendation;
 import com.nais.finalna_tacka.dto.SongRow;
 import com.nais.finalna_tacka.dto.TopUser;
+import com.nais.finalna_tacka.service.GenreRecommendationService;
 import com.nais.finalna_tacka.service.RecommendationService;
 import com.nais.finalna_tacka.service.SongReportService;
 import com.nais.finalna_tacka.service.TopUsersService;
@@ -28,10 +30,18 @@ public class ReportController {
     private final RecommendationService recommendationService;
     private final SongReportService songReportService;
     private final TopUsersService topUsersService;
+    private final GenreRecommendationService genreRecommendationService;
 
     @GetMapping("/recommendations/{userId}")
     public List<SongRecommendation> recommendations(@PathVariable String userId) {
         return recommendationService.recommendFor(userId);
+    }
+
+    /** Složena sekcija: preporuka pesama čiji se žanr nalazi u nazivu neke korisnikove plejliste
+     *  (Mongo plejliste + Neo4j IN_GENRE), bez onih koje su već u njegovim plejlistama. */
+    @GetMapping("/genre-recommendations/{userId}")
+    public List<GenrePlaylistRecommendation> genreRecommendations(@PathVariable String userId) {
+        return genreRecommendationService.recommendFor(userId);
     }
 
     /** Složena sekcija: top N korisnika čije plejliste sadrže najpopularnije pesme (Mongo playCount + Neo4j LISTENED). */

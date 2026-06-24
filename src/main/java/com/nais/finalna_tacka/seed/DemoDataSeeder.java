@@ -144,12 +144,14 @@ public class DemoDataSeeder implements ApplicationRunner {
         listen("u9", 1, 5, 9, 13, 17);                  // eklektičan (po jedna iz svakog žanra)
         listen("u10", 1, 2, 3, 4, 5, 6, 9, 13, 17, 18); // power user, širok spektar
 
-        // --- 5 plejlisti (po žanru) preko CREATE_PLAYLIST sage ---
-        createPlaylist("playlist-1", "u1", "Rock Essentials", 1, 2, 3, 4);
-        createPlaylist("playlist-2", "u2", "Pop Hits", 5, 6, 7, 8);
-        createPlaylist("playlist-3", "u4", "Jazz Vibes", 9, 10, 11, 12);
-        createPlaylist("playlist-4", "u6", "Hip-Hop Heat", 13, 14, 15, 16);
-        createPlaylist("playlist-5", "u9", "Electronic Mix", 17, 18, 19, 20);
+        // --- 5 plejlisti (naziv sadrži žanr) preko CREATE_PLAYLIST sage ---
+        // Namerno PODSKUP pesama svog žanra (po 2 od 4), da "genre-recommendations" sekcija ima
+        // šta da preporuči (preostale pesme istog žanra koje nisu u plejlisti).
+        createPlaylist("playlist-1", "u1", "Rock Essentials", 1, 2);      // preporuči rock 3, 4
+        createPlaylist("playlist-2", "u2", "Pop Hits", 5, 6);             // preporuči pop 7, 8
+        createPlaylist("playlist-3", "u4", "Jazz Vibes", 9, 10);          // preporuči jazz 11, 12
+        createPlaylist("playlist-4", "u6", "Hip-Hop Heat", 13, 14);       // preporuči hip-hop 15, 16
+        createPlaylist("playlist-5", "u9", "Electronic Mix", 17, 18);     // preporuči electronic 19, 20
 
         log.info("Demo seed complete: {} pesama, {} izvođača, {} korisnika, {} plejlisti. "
                         + "Proveri: GET /api/reports/recommendations/u1 | GET /api/reports/top-users",
